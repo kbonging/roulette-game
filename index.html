@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>오늘 누가 결제?</title>
+
+  <style>
+    :root {
+      --bg1: #08101e;
+      --bg2: #151b32;
+      --panel: rgba(255,255,255,.09);
+      --panel-border: rgba(255,255,255,.13);
+      --text: #f7f8ff;
+      --muted: #aeb6d3;
+      --yong: #7c5cff;
+      --bong: #20c997;
+      --combo: #ffca3a;
+      --shadow: 0 28px 80px rgba(0,0,0,.38);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(124,92,255,.28), transparent 30rem),
+        radial-gradient(circle at 85% 80%, rgba(32,201,151,.18), transparent 26rem),
+        linear-gradient(145deg, var(--bg1), var(--bg2));
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px 14px;
+    }
+
+    button, input { font: inherit; }
+
+    .app {
+      width: min(900px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      text-align: center;
+      padding-top: 8px;
+    }
+
+    .eyebrow {
+      color: #c8cfff;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .22em;
+    }
+
+    h1 {
+      margin: 8px 0 7px;
+      font-size: clamp(2rem, 6vw, 4.2rem);
+      line-height: 1;
+      letter-spacing: -.06em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(.95rem, 2vw, 1.05rem);
+    }
+
+    .game-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      border-radius: 32px;
+      background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      padding: clamp(18px, 4vw, 34px);
+    }
+
+    .game-card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: conic-gradient(from 30deg, transparent 0 40%, rgba(255,255,255,.055), transparent 60% 100%);
+      animation: ambient 12s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes ambient { to { transform: rotate(360deg); } }
+
+    .layout {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) minmax(220px, 285px);
+      gap: clamp(24px, 5vw, 50px);
+      align-items: center;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: min(100%, 520px);
+      aspect-ratio: 1;
+      margin-inline: auto;
+      filter: drop-shadow(0 24px 38px rgba(0,0,0,.36));
+    }
+
+    .wheel-shell {
+      position: absolute;
+      inset: 5%;
+      border-radius: 50%;
+      padding: 10px;
+      background: linear-gradient(145deg, rgba(255,255,255,.36), rgba(255,255,255,.07));
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.15),
+        0 0 0 10px rgba(255,255,255,.035);
+    }
+
+    #wheel {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 50%;
+      transform: rotate(0deg);
+      will-change: transform;
+    }
+
+    .hub {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 21%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, #fff, #cfd5ec 35%, #7d88ae 70%, #2c3556 100%);
+      border: 6px solid rgba(11,16,32,.48);
+      box-shadow: 0 10px 30px rgba(0,0,0,.32);
+      z-index: 3;
+    }
+
+    .hub::after {
+      content: "₩";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #151c38;
+      font-size: clamp(1.8rem, 5vw, 3.3rem);
+      font-weight: 1000;
+      transform: translateY(-2px);
+    }
+
+    .pointer {
+      position: absolute;
+      z-index: 5;
+      top: -1.5%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-bottom: 42px solid #fff;
+      filter: drop-shadow(0 7px 7px rgba(0,0,0,.32));
+    }
+
+    .pointer::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      transform: translate(-6px, -4px);
+    }
+
+    .side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .legend-item {
+      min-height: 64px;
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      padding: 10px 7px;
+      border-radius: 16px;
+      background: rgba(5,8,18,.28);
+      border: 1px solid rgba(255,255,255,.08);
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .legend-item small {
+      color: var(--muted);
+      font-size: .68rem;
+      font-weight: 700;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    .spin-btn {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      width: 100%;
+      min-height: 62px;
+      border-radius: 18px;
+      padding: 0 18px;
+      color: #0c1223;
+      font-size: 1.12rem;
+      font-weight: 1000;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #ffffff, #dfe6ff);
+      box-shadow: 0 15px 32px rgba(0,0,0,.22);
+      transition: transform .15s ease, filter .15s ease, opacity .15s ease;
+    }
+
+    .spin-btn:hover { transform: translateY(-2px); filter: brightness(1.03); }
+    .spin-btn:active { transform: translateY(1px) scale(.99); }
+    .spin-btn:disabled { cursor: default; opacity: .55; transform: none; }
+
+    .status {
+      min-height: 86px;
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      text-align: center;
+      background: rgba(255,255,255,.045);
+      border: 1px solid rgba(255,255,255,.07);
+    }
+
+    .status .small {
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .status .result {
+      font-size: clamp(1.35rem, 4vw, 2.15rem);
+      font-weight: 1000;
+      letter-spacing: -.04em;
+    }
+
+    .guide {
+      text-align: center;
+      color: var(--muted);
+      font-size: .75rem;
+      line-height: 1.55;
+    }
+
+    .admin-hotspot {
+      justify-self: center;
+      color: rgba(255,255,255,.15);
+      font-size: .68rem;
+      user-select: none;
+      cursor: default;
+      padding: 8px 18px;
+    }
+
+    dialog {
+      width: min(430px, calc(100% - 28px));
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 24px;
+      color: var(--text);
+      background: #12182c;
+      box-shadow: 0 35px 90px rgba(0,0,0,.58);
+      padding: 0;
+    }
+
+    dialog::backdrop {
+      background: rgba(0,0,0,.68);
+      backdrop-filter: blur(5px);
+    }
+
+    .dialog-inner {
+      padding: 24px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .dialog-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .dialog-head h2 {
+      margin: 0 0 5px;
+      font-size: 1.28rem;
+    }
+
+    .dialog-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.5;
+    }
+
+    .x-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 12px;
+      width: 38px;
+      height: 38px;
+      cursor: pointer;
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      font-size: 1.2rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: .85rem;
+      font-weight: 800;
+    }
+
+    .range-wrap {
+      display: grid;
+      grid-template-columns: 1fr 82px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--yong);
+    }
+
+    input[type="number"], input[type="password"] {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 13px;
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    .prob-card {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(5,8,18,.32);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .prob-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 11px;
+      border-radius: 13px;
+      background: rgba(255,255,255,.045);
+    }
+
+    .prob {
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dialog-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .dialog-actions button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 13px;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .secondary { background: rgba(255,255,255,.09); color: var(--text); }
+    .primary { background: #fff; color: #12182c; }
+
+    .note {
+      font-size: .74rem;
+      line-height: 1.55;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translate(-50%, 20px);
+      opacity: 0;
+      pointer-events: none;
+      background: rgba(8,12,24,.94);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 15px 40px rgba(0,0,0,.35);
+      padding: 11px 16px;
+      border-radius: 999px;
+      transition: .25s ease;
+      z-index: 50;
+      font-size: .86rem;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .confetti {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 40;
+    }
+
+    .piece {
+      position: absolute;
+      width: 9px;
+      height: 15px;
+      border-radius: 2px;
+      animation: fall 1.7s cubic-bezier(.18,.8,.3,1) forwards;
+    }
+
+    @keyframes fall {
+      0% { transform: translate3d(0,-10vh,0) rotate(0deg); opacity: 1; }
+      100% { transform: translate3d(var(--drift),105vh,0) rotate(720deg); opacity: .15; }
+    }
+
+    @media (max-width: 760px) {
+      body { padding-top: 16px; }
+      .layout { grid-template-columns: 1fr; }
+      .side { width: min(520px, 100%); margin-inline: auto; }
+      .game-card { border-radius: 26px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="eyebrow">PAYMENT ROULETTE</div>
+      <h1>오늘 누가 결제?</h1>
+      <p class="subtitle">돌림판으로 오늘의 결제 담당을 정합니다.</p>
+    </header>
+
+    <section class="game-card">
+      <div class="layout">
+        <div class="wheel-wrap" aria-label="결제자 돌림판">
+          <div class="pointer"></div>
+          <div class="wheel-shell">
+            <canvas id="wheel" width="900" height="900"></canvas>
+          </div>
+          <div class="hub" aria-hidden="true"></div>
+        </div>
+
+        <aside class="side">
+          <div class="legend">
+            <div class="legend-item"><div><span class="dot" style="background:var(--yong)"></span>용</div></div>
+            <div class="legend-item"><div><span class="dot" style="background:var(--bong)"></span>봉</div></div>
+            <div class="legend-item">
+              <div><span class="dot" style="background:var(--combo)"></span>용봉</div>
+              <small>희귀</small>
+            </div>
+          </div>
+
+          <button class="spin-btn" id="spinBtn" type="button">돌림판 돌리기</button>
+
+          <div class="status" aria-live="polite">
+            <div class="small" id="statusSmall">아직 결과가 없습니다</div>
+            <div class="result" id="resultText">READY</div>
+          </div>
+
+          <div class="guide">
+            용봉 실제 당첨 확률은 1%로 고정됩니다.<br />
+            돌림판 조각 크기는 시각적 표현이며 실제 당첨 확률과 다를 수 있습니다.
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 관리자 진입: 아래 v1.1 문구를 2.6초 안에 7번 클릭 -->
+    <div class="admin-hotspot" id="adminHotspot">v1.1</div>
+  </main>
+
+  <dialog id="pinDialog">
+    <div class="dialog-inner">
+      <div class="dialog-head">
+        <div>
+          <h2 id="pinTitle">관리자 잠금</h2>
+          <p id="pinDesc">설정에 접근하려면 PIN을 입력하세요.</p>
+        </div>
+        <button class="x-btn" id="closePinBtn" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <div class="field">
+        <label for="pinInput">PIN</label>
+        <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12" />
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary" id="cancelPinBtn" type="button">취소</button>
+        <button class="primary" id="pinSubmitBtn" type="button">확인</button>
+      </div>
+
+      <p class="note">
+        PIN은 이 브라우저에만 저장됩니다. GitHub Pages는 정적 사이트이므로 개발자 도구 사용까지 완전히 차단할 수는 없습니다.
+      </p>
+    </div>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <div class="dialog-inner">
+      <div class="dialog-head">
+        <div>
+          <h2>관리자 설정</h2>
+          <p>실제 당첨 확률과 돌림판 표시 크기를 각각 설정할 수 있습니다.</p>
+        </div>
+        <button class="x-btn" id="closeSettingsBtn" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <div class="field">
+        <label for="yongRange">용 확률</label>
+        <div class="range-wrap">
+          <input id="yongRange" type="range" min="0" max="99" value="49.5" step="0.5" />
+          <input id="yongNumber" type="number" min="0" max="99" value="49.5" step="0.5" />
+        </div>
+      </div>
+
+      <div class="prob-card">
+        <div class="prob-row">
+          <div><span class="dot" style="background:var(--yong)"></span>용</div>
+          <div class="prob" id="settingYong">49.5%</div>
+        </div>
+        <div class="prob-row">
+          <div><span class="dot" style="background:var(--bong)"></span>봉</div>
+          <div class="prob" id="settingBong">49.5%</div>
+        </div>
+        <div class="prob-row">
+          <div><span class="dot" style="background:var(--combo)"></span>용봉</div>
+          <div class="prob">1.0%</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>돌림판 표시 크기 <span style="color:var(--muted);font-weight:600;">(실제 확률과 별개)</span></label>
+        <div class="prob-card">
+          <div class="prob-row">
+            <div><span class="dot" style="background:var(--yong)"></span>용</div>
+            <input id="visualYong" type="number" min="1" max="100" step="1" value="50" style="width:88px;" />
+          </div>
+          <div class="prob-row">
+            <div><span class="dot" style="background:var(--bong)"></span>봉</div>
+            <input id="visualBong" type="number" min="1" max="100" step="1" value="50" style="width:88px;" />
+          </div>
+          <div class="prob-row">
+            <div><span class="dot" style="background:var(--combo)"></span>용봉</div>
+            <input id="visualCombo" type="number" min="1" max="100" step="1" value="1" style="width:88px;" />
+          </div>
+        </div>
+        <p class="note">입력값은 가중치입니다. 예: 50 / 50 / 1이면 용·봉은 거의 반반, 용봉은 매우 작게 표시됩니다.</p>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="secondary" id="cancelSettingsBtn" type="button">취소</button>
+        <button class="primary" id="saveSettingsBtn" type="button">저장</button>
+      </div>
+
+      <p class="note">
+        실제 당첨 확률과 표시 크기는 서로 독립적으로 저장됩니다.
+      </p>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <div class="confetti" id="confetti"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const COMBO_PROB = 1;
+      const STORAGE_PROB = "payWheelYongProb";
+      const STORAGE_PIN = "payWheelPinHashV2";
+      const STORAGE_VISUAL_YONG = "payWheelVisualYong";
+      const STORAGE_VISUAL_BONG = "payWheelVisualBong";
+      const STORAGE_VISUAL_COMBO = "payWheelVisualCombo";
+
+      const canvas = document.getElementById("wheel");
+      const ctx = canvas.getContext("2d");
+
+      const spinBtn = document.getElementById("spinBtn");
+      const statusSmall = document.getElementById("statusSmall");
+      const resultText = document.getElementById("resultText");
+
+      const adminHotspot = document.getElementById("adminHotspot");
+
+      const pinDialog = document.getElementById("pinDialog");
+      const pinTitle = document.getElementById("pinTitle");
+      const pinDesc = document.getElementById("pinDesc");
+      const pinInput = document.getElementById("pinInput");
+      const pinSubmitBtn = document.getElementById("pinSubmitBtn");
+      const cancelPinBtn = document.getElementById("cancelPinBtn");
+      const closePinBtn = document.getElementById("closePinBtn");
+
+      const settingsDialog = document.getElementById("settingsDialog");
+      const yongRange = document.getElementById("yongRange");
+      const yongNumber = document.getElementById("yongNumber");
+      const settingYong = document.getElementById("settingYong");
+      const settingBong = document.getElementById("settingBong");
+      const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+      const cancelSettingsBtn = document.getElementById("cancelSettingsBtn");
+      const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+
+      const visualYong = document.getElementById("visualYong");
+      const visualBong = document.getElementById("visualBong");
+      const visualCombo = document.getElementById("visualCombo");
+
+      const toast = document.getElementById("toast");
+      const confetti = document.getElementById("confetti");
+
+      const css = getComputedStyle(document.documentElement);
+      const COLORS = {
+        yong: css.getPropertyValue("--yong").trim(),
+        bong: css.getPropertyValue("--bong").trim(),
+        combo: css.getPropertyValue("--combo").trim()
+      };
+
+      let yongProb = clamp(Number(localStorage.getItem(STORAGE_PROB) ?? 49.5), 0, 99);
+
+      let visualWeights = {
+        yong: clamp(Number(localStorage.getItem(STORAGE_VISUAL_YONG) ?? 50), 1, 100),
+        bong: clamp(Number(localStorage.getItem(STORAGE_VISUAL_BONG) ?? 50), 1, 100),
+        combo: clamp(Number(localStorage.getItem(STORAGE_VISUAL_COMBO) ?? 1), 1, 100)
+      };
+
+      let rotation = 0;
+      let spinning = false;
+      let hotspotClicks = 0;
+      let hotspotTimer = null;
+
+      function clamp(value, min, max) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return min;
+        return Math.min(max, Math.max(min, n));
+      }
+
+      function fmt(n) {
+        return Number(n).toFixed(1);
+      }
+
+      function getBongProb() {
+        return 99 - yongProb;
+      }
+
+      function getVisualPercents() {
+        const total = visualWeights.yong + visualWeights.bong + visualWeights.combo;
+        return {
+          yong: (visualWeights.yong / total) * 100,
+          bong: (visualWeights.bong / total) * 100,
+          combo: (visualWeights.combo / total) * 100
+        };
+      }
+
+      function simpleHash(text) {
+        let hash = 2166136261;
+        for (let i = 0; i < text.length; i++) {
+          hash ^= text.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
+        }
+        return (hash >>> 0).toString(16).padStart(8, "0");
+      }
+
+      function secureRandom() {
+        if (window.crypto && window.crypto.getRandomValues) {
+          const a = new Uint32Array(1);
+          window.crypto.getRandomValues(a);
+          return a[0] / 4294967296;
+        }
+        return Math.random();
+      }
+
+      function shade(hex, percent) {
+        const raw = hex.replace("#", "");
+        if (raw.length !== 6) return hex;
+
+        const num = parseInt(raw, 16);
+        const amt = Math.round(2.55 * percent);
+        const r = Math.max(0, Math.min(255, (num >> 16) + amt));
+        const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+        const b = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+
+        return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+      }
+
+      function drawWheel() {
+        const size = canvas.width;
+        const center = size / 2;
+        const radius = size / 2 - 12;
+
+        ctx.clearRect(0, 0, size, size);
+
+        const visual = getVisualPercents();
+
+        const segments = [
+          { name: "용", prob: visual.yong, color: COLORS.yong },
+          { name: "봉", prob: visual.bong, color: COLORS.bong },
+          { name: "용봉", prob: visual.combo, color: COLORS.combo }
+        ];
+
+        let start = -Math.PI / 2;
+
+        for (const seg of segments) {
+          const angle = (seg.prob / 100) * Math.PI * 2;
+          const end = start + angle;
+
+          ctx.beginPath();
+          ctx.moveTo(center, center);
+          ctx.arc(center, center, radius, start, end);
+          ctx.closePath();
+
+          const grad = ctx.createRadialGradient(center, center, radius * .05, center, center, radius);
+          grad.addColorStop(0, seg.color);
+          grad.addColorStop(1, shade(seg.color, -18));
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(255,255,255,.22)";
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          const mid = start + angle / 2;
+
+          if (seg.prob >= 8) {
+            ctx.save();
+            ctx.translate(center, center);
+            ctx.rotate(mid);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#fff";
+            ctx.shadowColor = "rgba(0,0,0,.35)";
+            ctx.shadowBlur = 10;
+            ctx.font = "900 78px system-ui, sans-serif";
+            ctx.fillText(seg.name, radius * .58, 0);
+            ctx.restore();
+          } else if (seg.name === "용봉") {
+            ctx.save();
+            ctx.translate(center, center);
+            ctx.rotate(mid);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#101426";
+            ctx.font = "900 18px system-ui, sans-serif";
+            ctx.fillText("용봉", radius * .78, 0);
+            ctx.restore();
+          }
+
+          start = end;
+        }
+
+        ctx.beginPath();
+        ctx.arc(center, center, radius - 3, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,.25)";
+        ctx.lineWidth = 9;
+        ctx.stroke();
+      }
+
+      function pickResult() {
+        const r = secureRandom() * 100;
+
+        if (r < yongProb) return "용";
+        if (r < yongProb + getBongProb()) return "봉";
+        return "용봉";
+      }
+
+      function targetAngleFor(result) {
+        const visual = getVisualPercents();
+        const yongEnd = visual.yong * 3.6;
+        const bongEnd = (visual.yong + visual.bong) * 3.6;
+
+        let startDeg;
+        let endDeg;
+
+        if (result === "용") {
+          startDeg = 0;
+          endDeg = yongEnd;
+        } else if (result === "봉") {
+          startDeg = yongEnd;
+          endDeg = bongEnd;
+        } else {
+          startDeg = bongEnd;
+          endDeg = 360;
+        }
+
+        const width = endDeg - startDeg;
+        const margin = Math.min(1.1, Math.max(.08, width * .12));
+        const usableStart = startDeg + margin;
+        const usableEnd = endDeg - margin;
+
+        return usableStart + secureRandom() * Math.max(.03, usableEnd - usableStart);
+      }
+
+      function spin() {
+        if (spinning) return;
+
+        spinning = true;
+        spinBtn.disabled = true;
+        statusSmall.textContent = "결제 담당자를 뽑는 중...";
+        resultText.textContent = "SPIN";
+
+        const result = pickResult();
+        const target = targetAngleFor(result);
+
+        const currentMod = ((rotation % 360) + 360) % 360;
+        const desiredMod = (360 - target + 360) % 360;
+        const extra = (desiredMod - currentMod + 360) % 360;
+        const spins = 7 + Math.floor(secureRandom() * 3);
+
+        rotation += spins * 360 + extra;
+
+        canvas.style.transition = "transform 5.2s cubic-bezier(.11,.76,.16,1)";
+
+        requestAnimationFrame(() => {
+          canvas.style.transform = `rotate(${rotation}deg)`;
+        });
+
+        window.setTimeout(() => {
+          statusSmall.textContent = "오늘의 결제 담당";
+          resultText.textContent = result === "용봉" ? "용 + 봉 🎉" : `${result} 당첨!`;
+          spinning = false;
+          spinBtn.disabled = false;
+          burstConfetti(result === "용봉" ? 95 : 46);
+        }, 5300);
+      }
+
+      function burstConfetti(count) {
+        const palette = [COLORS.yong, COLORS.bong, COLORS.combo, "#ffffff", "#ff7aa2"];
+
+        for (let i = 0; i < count; i++) {
+          const el = document.createElement("i");
+          el.className = "piece";
+          el.style.left = `${secureRandom() * 100}%`;
+          el.style.background = palette[Math.floor(secureRandom() * palette.length)];
+          el.style.setProperty("--drift", `${(secureRandom() - .5) * 220}px`);
+          el.style.animationDelay = `${secureRandom() * .25}s`;
+
+          confetti.appendChild(el);
+          window.setTimeout(() => el.remove(), 2100);
+        }
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => {
+          toast.classList.remove("show");
+        }, 1800);
+      }
+
+      function syncAdminUI(value = yongProb) {
+        const next = Math.round(clamp(value, 0, 99) * 2) / 2;
+
+        yongRange.value = next;
+        yongNumber.value = next;
+        settingYong.textContent = `${fmt(next)}%`;
+        settingBong.textContent = `${fmt(99 - next)}%`;
+
+        visualYong.value = visualWeights.yong;
+        visualBong.value = visualWeights.bong;
+        visualCombo.value = visualWeights.combo;
+      }
+
+      function openPinDialog() {
+        const hasPin = Boolean(localStorage.getItem(STORAGE_PIN));
+
+        pinTitle.textContent = hasPin ? "관리자 잠금" : "관리자 PIN 만들기";
+        pinDesc.textContent = hasPin
+          ? "설정에 접근하려면 PIN을 입력하세요."
+          : "이 브라우저에서 사용할 관리자 PIN을 설정하세요.";
+
+        pinInput.value = "";
+
+        if (!pinDialog.open) {
+          pinDialog.showModal();
+        }
+
+        setTimeout(() => pinInput.focus(), 50);
+      }
+
+      function handlePinConfirm() {
+        const pin = pinInput.value.trim();
+
+        if (pin.length < 4) {
+          showToast("PIN은 4자리 이상 입력하세요.");
+          pinInput.focus();
+          return;
+        }
+
+        const inputHash = simpleHash(pin);
+        const savedHash = localStorage.getItem(STORAGE_PIN);
+
+        if (!savedHash) {
+          localStorage.setItem(STORAGE_PIN, inputHash);
+          pinDialog.close();
+          syncAdminUI();
+          settingsDialog.showModal();
+          showToast("관리자 PIN을 만들었습니다.");
+          return;
+        }
+
+        if (inputHash !== savedHash) {
+          pinInput.value = "";
+          showToast("PIN이 일치하지 않습니다.");
+          pinInput.focus();
+          return;
+        }
+
+        pinDialog.close();
+        syncAdminUI();
+        settingsDialog.showModal();
+      }
+
+      adminHotspot.addEventListener("click", () => {
+        hotspotClicks += 1;
+
+        clearTimeout(hotspotTimer);
+        hotspotTimer = setTimeout(() => {
+          hotspotClicks = 0;
+        }, 2600);
+
+        if (hotspotClicks >= 7) {
+          hotspotClicks = 0;
+          clearTimeout(hotspotTimer);
+          openPinDialog();
+        }
+      });
+
+      pinSubmitBtn.addEventListener("click", handlePinConfirm);
+
+      pinInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handlePinConfirm();
+        }
+      });
+
+      cancelPinBtn.addEventListener("click", () => pinDialog.close());
+      closePinBtn.addEventListener("click", () => pinDialog.close());
+
+      yongRange.addEventListener("input", () => {
+        syncAdminUI(yongRange.value);
+      });
+
+      yongNumber.addEventListener("input", () => {
+        syncAdminUI(yongNumber.value);
+      });
+
+      saveSettingsBtn.addEventListener("click", () => {
+        const next = Math.round(clamp(yongNumber.value, 0, 99) * 2) / 2;
+
+        yongProb = next;
+
+        visualWeights = {
+          yong: Math.round(clamp(visualYong.value, 1, 100)),
+          bong: Math.round(clamp(visualBong.value, 1, 100)),
+          combo: Math.round(clamp(visualCombo.value, 1, 100))
+        };
+
+        localStorage.setItem(STORAGE_PROB, String(yongProb));
+        localStorage.setItem(STORAGE_VISUAL_YONG, String(visualWeights.yong));
+        localStorage.setItem(STORAGE_VISUAL_BONG, String(visualWeights.bong));
+        localStorage.setItem(STORAGE_VISUAL_COMBO, String(visualWeights.combo));
+
+        drawWheel();
+        settingsDialog.close();
+        showToast("설정을 저장했습니다.");
+      });
+
+      cancelSettingsBtn.addEventListener("click", () => {
+        settingsDialog.close();
+      });
+
+      closeSettingsBtn.addEventListener("click", () => {
+        settingsDialog.close();
+      });
+
+      spinBtn.addEventListener("click", spin);
+
+      syncAdminUI();
+      drawWheel();
+    })();
+  </script>
+</body>
+</html>
